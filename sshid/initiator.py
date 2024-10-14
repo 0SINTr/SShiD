@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Copyright 2024-2025 © 0SINTr (https://github.com/0SINTr)
+# Initiator Script for SShiD
+
 from scapy.all import Dot11, Dot11Beacon, Dot11Elt, RadioTap, sendp, sniff
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes, hmac
@@ -68,32 +69,34 @@ def derive_key(password, salt=b'unique_salt', iterations=100000):
     key = kdf.derive(password.encode())
     return key
 
-# Function to encrypt the message
+# Function to encrypt the message using ChaCha20
 def encrypt_message(message, key):
-    # AES-CTR mode with a random nonce
+    # ChaCha20 requires a 16-byte nonce in cryptography library
     nonce = os.urandom(16)  # 128-bit nonce
-    cipher = Cipher(algorithms.AES(key), modes.CTR(nonce), backend=default_backend())
+    cipher = Cipher(algorithms.ChaCha20(key, nonce), mode=None, backend=default_backend())
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(message.encode()) + encryptor.finalize()
     return nonce, ciphertext
 
-# Function to decrypt the message
+# Function to decrypt the message using ChaCha20
 def decrypt_message(nonce, ciphertext, key):
-    cipher = Cipher(algorithms.AES(key), modes.CTR(nonce), backend=default_backend())
+    cipher = Cipher(algorithms.ChaCha20(key, nonce), mode=None, backend=default_backend())
     decryptor = cipher.decryptor()
     plaintext = decryptor.update(ciphertext) + decryptor.finalize()
     return plaintext.decode()
 
 # Function to generate HMAC identifier
-def generate_identifier(key, password, length=4):
+def generate_identifier(key, password, length=3):
     h = hmac.HMAC(key, hashes.SHA256(), backend=default_backend())
     h.update(password.encode())
     digest = h.finalize()
     identifier = base64.urlsafe_b64encode(digest).decode()[:length]
+    print("Unique Identifier: ", identifier)
     return identifier
 
 # Function to construct and send beacon frame
 def send_beacon(ssid, iface):
+    print("Published Initiator SSID: ", ssid)
     dot11 = Dot11(type=0, subtype=8, addr1='ff:ff:ff:ff:ff:ff',
                 addr2=random_mac(), addr3=random_mac())
     beacon = Dot11Beacon(cap='ESS+privacy')
@@ -101,17 +104,18 @@ def send_beacon(ssid, iface):
     frame = RadioTap()/dot11/beacon/essid
     sendp(frame, iface=iface, inter=0.1, loop=1, verbose=0)
 
-# Function to encode the message to fit in 28 bytes
+# Function to encode the message to fit in 29 characters using Base85
 def encode_message(nonce, ciphertext):
     # Combine nonce and ciphertext
-    data = nonce + ciphertext
-    # Base64 encode
-    encoded = base64.urlsafe_b64encode(data).decode()
-    # Ensure it fits in 28 bytes
-    if len(encoded) > 28:
-        encoded = encoded[:28]
+    data = nonce + ciphertext  # 16 + 7 = 23 bytes
+    # Base85 encode
+    encoded = base64.b85encode(data).decode()
+    # Ensure it fits in 29 characters
+    if len(encoded) > 29:
+        print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + "Encoded message exceeds 29 characters. Adjusting...")
+        encoded = encoded[:29]
     else:
-        encoded = encoded.ljust(28, '=')
+        encoded = encoded.ljust(29, '=')
     return encoded
 
 # Function to sniff for responses
@@ -119,10 +123,18 @@ def sniff_responses(key, identifier, iface):
     def process_packet(packet):
         if packet.haslayer(Dot11Beacon):
             ssid = packet[Dot11Elt].info.decode(errors='ignore')
-            if len(ssid) == 32 and ssid[-4:] == identifier:
-                encoded_msg = ssid[:-4]
+            if len(ssid) == 32 and ssid[-3:] == identifier:
+                encoded_msg = ssid[:-3]
                 try:
-                    data = base64.urlsafe_b64decode(encoded_msg + '==')  # Adjust padding
+                    # Base85 decode
+                    # ChaCha20 in cryptography expects 16-byte nonce, so data should be 16 + 7 = 23 bytes
+                    # Base85 encodes 4 bytes into 5 characters, so 23 bytes -> ceil(23/4)*5 = 30 characters
+                    # But we have 29 characters, which is one character less, hence adjust
+                    # Adding '==' padding if necessary
+                    padding_needed = (len(encoded_msg) % 5)
+                    if padding_needed != 0:
+                        encoded_msg += '=' * (5 - padding_needed)
+                    data = base64.b85decode(encoded_msg)
                     nonce = data[:16]
                     ciphertext = data[16:]
                     plaintext = decrypt_message(nonce, ciphertext, key)
@@ -130,18 +142,23 @@ def sniff_responses(key, identifier, iface):
                     # Exit after receiving the response
                     sys.exit(0)
                 except Exception as e:
-                    pass  # Ignore decoding errors
+                    print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Failed to decode received message: {e}")
     sniff(iface=iface, prn=process_packet, stop_filter=lambda x: False)
 
 def main():
-    iface = input("Enter your wireless interface in monitor mode (e.g., wlan0mon): ")
+    iface = get_wireless_interface()
     password = input("Enter shared password: ")
     key = derive_key(password)
     identifier = generate_identifier(key, password)
-    message = input("Enter message to send (max 20 characters): ")
-    if len(message.encode()) > 21:
-        print("Message too long, truncating to 21 bytes.")
-        message = message.encode()[:21].decode()
+    message = input("Enter message to send (max 7 characters): ")
+    if len(message.encode('utf-8')) > 7:
+        print("Message too long, truncating to 7 bytes.")
+        # Truncate to 7 bytes safely
+        message_bytes = message.encode('utf-8')[:7]
+        try:
+            message = message_bytes.decode('utf-8')
+        except UnicodeDecodeError:
+            message = message_bytes.decode('utf-8', errors='ignore')
     nonce, ciphertext = encrypt_message(message, key)
     encoded_msg = encode_message(nonce, ciphertext)
     ssid = encoded_msg + identifier
