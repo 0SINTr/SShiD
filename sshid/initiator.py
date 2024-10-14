@@ -104,19 +104,30 @@ def send_beacon(ssid, iface):
     frame = RadioTap()/dot11/beacon/essid
     sendp(frame, iface=iface, inter=0.1, loop=1, verbose=0)
 
-# Function to encode the message to fit in 29 characters using Base85
 def encode_message(nonce, ciphertext):
-    # Combine nonce and ciphertext
     data = nonce + ciphertext  # 16 + 7 = 23 bytes
-    # Base85 encode
-    encoded = base64.b85encode(data).decode()
-    # Ensure it fits in 29 characters
+    encoded = base64.urlsafe_b64encode(data).decode()
+    # Remove padding and ensure it fits in 29 characters
+    encoded = encoded.rstrip('=')
     if len(encoded) > 29:
         print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + "Encoded message exceeds 29 characters. Adjusting...")
         encoded = encoded[:29]
     else:
-        encoded = encoded.ljust(29, '=')
+        encoded = encoded.ljust(29, 'A')  # Use 'A' or any safe character for padding
     return encoded
+
+def decode_message(encoded_msg):
+    # Add necessary padding
+    padding_needed = (4 - len(encoded_msg) % 4) % 4
+    encoded_msg += "=" * padding_needed
+    try:
+        data = base64.urlsafe_b64decode(encoded_msg)
+        nonce = data[:16]  # 16-byte nonce
+        ciphertext = data[16:]  # Remaining bytes are ciphertext
+        return nonce, ciphertext
+    except Exception as e:
+        print(Style.BRIGHT + "[ERROR] " + Style.RESET_ALL + f"Decoding failed: {e}")
+        return None, None
 
 # Function to sniff for responses
 def sniff_responses(key, identifier, iface):
