@@ -105,13 +105,13 @@ Both components use a shared secret password for SSID generation and message enc
 
 Monitor mode should be enabled on **both** the Speaker and Listener machines prior to using SShiD.
 To identify your wireless interface and check if it supports Monitor mode use:
-    ```bash
+    ```
     iw dev
     sudo iw list | grep -A 10 "Supported interface modes"
     ```
 
 To enable Monitor mode and set channel 6 (assuming `wlan0` is your interface) use:
-    ```bash
+    ```
     sudo apt update
     sudo apt install aircrack-ng
     sudo airmon-ng check kill
@@ -122,21 +122,21 @@ After enabling Monitor mode, your interface will now show up as **wlan0mon**.
 Some WiFi cards may show support for Monitor mode but not function properly, for instance when capturing frames. 
 
 To check your wireless adapter driver use:
-    ```bash
+    ```
     lspci -k | grep -A 3 -i network
     ```
 or, for USB adapters:
-    ```bash
+    ```
     lsusb
     ```
 Additionally, check logs for failure messages if your adapter doesn't capture any traffic at all in Monitor mode.
-    ```bash
+    ```
     sudo dmesg | grep -i <driver_name>
     ```
 Do your own research on this adapter and any issues related to Monitor mode. Best case scenario, you need a driver update. Otherwise, you need an adapter that supports Monitor mode.
 
 To disable Monitor mode and re-enable the default Managed mode:
-    ```bash
+    ```
     sudo airmon-ng stop wlan0mon
     sudo systemctl start NetworkManager
     ```
