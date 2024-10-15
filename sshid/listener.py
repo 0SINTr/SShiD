@@ -16,7 +16,6 @@ Usage:
 sudo python3 listener.py
 """
 
-import os
 import sys
 import base64
 import hashlib
@@ -25,11 +24,11 @@ from getpass import getpass
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from scapy.all import sniff, Dot11, Dot11Beacon, Dot11Elt
-from scapy.layers.dot11 import Dot11EltVendorSpecific
+from scapy.all import sniff, Dot11Beacon, Dot11Elt
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
 
 def derive_key(password, salt, iterations=100000):
     """
@@ -65,8 +64,8 @@ def generate_ssid_identifier(password):
     # Use a fixed salt for the SSID hash to ensure both parties generate the same SSID
     ssid_salt = b'sshid_ssid_salt'
     ssid_hash = hashlib.sha256(password.encode() + ssid_salt).digest()
-    # Use Base64 URL-safe encoding and truncate to 32 characters
-    ssid = base64.urlsafe_b64encode(ssid_hash).decode('utf-8').rstrip('=')[:32]
+    # Use Base64 URL-safe encoding and truncate to 10 characters
+    ssid = base64.urlsafe_b64encode(ssid_hash).decode('utf-8').rstrip('=')[:10]
     return ssid
 
 def decrypt_message(nonce, ciphertext, key):
@@ -178,6 +177,7 @@ def listener_main():
     iface = get_wireless_interface()
     password = getpass('Enter secret password: ')
     ssid = generate_ssid_identifier(password)
+    logging.info(f'Listening on interface: {iface}')
     logging.info(f'SSID to search for: {ssid}')
 
     # Derive decryption key

@@ -19,6 +19,8 @@ sudo python3 speaker.py
 import os
 import sys
 import base64
+import random
+import struct
 import hashlib
 import threading
 import subprocess
@@ -31,6 +33,7 @@ from scapy.layers.dot11 import Dot11EltVendorSpecific
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+#logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
 
 def derive_key(password, salt, iterations=100000):
     """
@@ -66,8 +69,8 @@ def generate_ssid_identifier(password):
     # Use a fixed salt for the SSID hash to ensure both parties generate the same SSID
     ssid_salt = b'sshid_ssid_salt'
     ssid_hash = hashlib.sha256(password.encode() + ssid_salt).digest()
-    # Use Base64 URL-safe encoding and truncate to 32 characters
-    ssid = base64.urlsafe_b64encode(ssid_hash).decode('utf-8').rstrip('=')[:32]
+    # Use Base64 URL-safe encoding and truncate to 10 characters
+    ssid = base64.urlsafe_b64encode(ssid_hash).decode('utf-8').rstrip('=')[:10]
     return ssid
 
 def encrypt_message(message, key):
@@ -135,6 +138,13 @@ def get_wireless_interface():
         logging.error(f'Error detecting wireless interface: {e}')
         sys.exit(1)
 
+def generate_random_mac():
+    mac = [0x00, 0x16, 0x3e,
+           random.randint(0x00, 0x7f),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff)]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
 def broadcast_beacon(iface, ssid, encoded_data, channel=6):
     """
     Constructs and sends beacon frames with the given SSID, Vendor-Specific IE, and channel.
@@ -145,21 +155,55 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=6):
         encoded_data (str): The Base64 encoded encrypted message to include in the Vendor-Specific IE.
         channel (int): The Wi-Fi channel to broadcast on (default: 6).
     """
-    # OUI for Vendor-Specific IE (use a private OUI)
-    vendor_oui = int.from_bytes(b'\x00\x11\x22', byteorder='big')  # Example OUI: 0x001122
+    # Use a locally administered OUI (e.g., 0xACDE48)
+    vendor_oui = 0xACDE48
+
+    # Ensure encoded_data is bytes
+    if isinstance(encoded_data, str):
+        encoded_data_bytes = encoded_data.encode('utf-8')
+    else:
+        encoded_data_bytes = encoded_data
 
     # Build the Vendor-Specific IE
-    vendor_ie = Dot11EltVendorSpecific(oui=vendor_oui, info=encoded_data.encode('utf-8'))
+    vendor_ie = Dot11EltVendorSpecific(oui=vendor_oui, info=encoded_data_bytes)
 
     # Build the DS Parameter Set IE to specify the channel
-    dsset = Dot11Elt(ID='DSset', info=chr(channel))
+    dsset = Dot11Elt(ID='DSset', info=chr(channel).encode('utf-8'))
+
+    # Generate a random globally unique MAC address
+    source_mac = generate_random_mac()
 
     # Construct the beacon frame
     dot11 = Dot11(type=0, subtype=8, addr1='ff:ff:ff:ff:ff:ff',
-                  addr2='02:00:00:00:00:01', addr3='02:00:00:00:00:01')
-    beacon = Dot11Beacon(cap='ESS')
-    essid = Dot11Elt(ID='SSID', info=ssid)
-    frame = RadioTap()/dot11/beacon/essid/vendor_ie
+                  addr2=source_mac, addr3=source_mac)
+    beacon = Dot11Beacon(cap='ESS+privacy')
+    essid = Dot11Elt(ID='SSID', info=ssid.encode('utf-8'))
+
+    # RSN Information Element Fields
+    rsn_version = struct.pack('<H', 1)       # RSN Version 1 (2 bytes, little-endian)
+    group_cipher_suite = b'\x00\x0f\xac\x04' # Group Cipher Suite: AES (4 bytes)
+    pairwise_cipher_suite_count = struct.pack('<H', 1)  # Pairwise Cipher Suite Count: 1 (2 bytes, little-endian)
+    pairwise_cipher_suite = b'\x00\x0f\xac\x04'         # Pairwise Cipher Suite: AES (4 bytes)
+    akm_suite_count = struct.pack('<H', 1)    # AKM Suite Count: 1 (2 bytes, little-endian)
+    akm_suite = b'\x00\x0f\xac\x02'           # AKM Suite: Pre-Shared Key (PSK) (4 bytes)
+    rsn_capabilities = struct.pack('<H', 0)   # RSN Capabilities (2 bytes, little-endian)
+
+    # Assemble the RSN IE
+    rsn_info = (
+        rsn_version +
+        group_cipher_suite +
+        pairwise_cipher_suite_count +
+        pairwise_cipher_suite +
+        akm_suite_count +
+        akm_suite +
+        rsn_capabilities
+    )
+
+    # Create the RSN Information Element
+    rsn = Dot11Elt(ID='RSNinfo', info=rsn_info)
+
+    # Build the complete frame
+    frame = RadioTap()/dot11/beacon/essid/rsn/dsset/vendor_ie
 
     # Send the frame in a loop
     sendp(frame, iface=iface, inter=0.1, loop=1, verbose=0)
@@ -177,6 +221,7 @@ def speaker_main():
     iface = get_wireless_interface()
     password = getpass('Enter secret password: ')
     ssid = generate_ssid_identifier(password)
+    logging.info(f'Broadcasting on interface: {iface}')
     logging.info(f'SSID to broadcast: {ssid}')
 
     # Derive encryption key
