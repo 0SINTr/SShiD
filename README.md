@@ -2,7 +2,7 @@
 # 📡 SShiD - Covert Communication via SSID Beacons 📡
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)
-[![Stable Release](https://img.shields.io/badge/version-0.0.2-blue.svg)](https://github.com/0SINTr/SShiD/releases/tag/v0.0.2)
+[![Stable Release](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/0SINTr/SShiD/releases/tag/v0.1.0)
 [![Last Commit](https://img.shields.io/github/last-commit/0SINTr/SShiD)](https://github.com/0SINTr/SShiD/commits/main/)
 
 ## **Table of Contents**
