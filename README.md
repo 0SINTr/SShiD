@@ -185,7 +185,7 @@ Both Speaker and Listener scripts require root privileges to send or sniff beaco
 **SShiD** is intended for educational and authorized security testing purposes only. Unauthorized interception or manipulation of network traffic is illegal and unethical. Users are responsible for ensuring that their use of this tool complies with all applicable laws and regulations. The developers of **SShiD** do not endorse or support any malicious or unauthorized activities. Use this tool responsibly and at your own risk.
 
 ## 📜 License
-**SShiD** is licensed under the [GNU GENERAL PUBLIC LICENSE Version 3](https://github.com/0SINTr/DHushCP/blob/main/LICENSE.md).
+**SShiD** is licensed under the [GNU GENERAL PUBLIC LICENSE Version 3](https://github.com/0SINTr/SShiD/blob/main/LICENSE.md).
 
 ## 📧 Professional Collaborations
 
