@@ -25,7 +25,7 @@
 
 ## 🔍 **Overview**
 
-**SShiD** is a proof-of-concept, Linux-based tool that utilizes principles of **network steganography** and enables covert communication by embedding encrypted messages within Wi-Fi beacon frames' Vendor-Specific Information Elements (IEs). This method allows for discreet data transmission without establishing a traditional network connection.
+**SShiD** is a proof-of-concept, Linux-based tool that utilizes principles of **network steganography** and enables covert communication by embedding encrypted messages within Wi-Fi beacon frames' **Vendor-Specific Information Elements (IEs)**. This method allows for discreet data transmission without establishing a traditional network connection.
 
 🍀 **NOTE:** This is an ongoing **reasearch project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
 
@@ -88,7 +88,7 @@ Both components use a shared secret password for SSID generation and message enc
 8. **Output:**
    - The decrypted message is displayed to the user.
 
-🍀 **NOTE:** SShiD enables one-to-many communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
+🍀 **NOTE:** SShiD enables **one-to-many** communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
 
 ## 🕵 **System Requirements**
 
@@ -97,20 +97,22 @@ Both components use a shared secret password for SSID generation and message enc
 - **Python Version:** Python 3.8 or higher
 - **Dependencies:**
   - `scapy` for packet crafting and sniffing
-  - `cryptography` for ECC encryption and checksum generation
+  - `cryptography` for encryption and decryption
 - **Privileges:** Root or sudo access to send or sniff WiFi beacons
-- **Network Interface:** Wireless interfaces in UP state and Monitor mode. **SShiD** will automatically detect and prompt you to select the active interface if multiple are detected.
+- **Network Interface:** Wireless interfaces in **UP** state and **Monitor** mode. **SShiD** will automatically detect and prompt you to select the active interface if multiple are detected.
 
 ## 🖥️ **Monitor Mode**
 
 Monitor mode should be enabled on **both** the Speaker and Listener machines prior to using SShiD.
 To identify your wireless interface and check if it supports Monitor mode use:
+
     ```bash
     iw dev
     sudo iw list | grep -A 10 "Supported interface modes"
     ```
 
 To enable Monitor mode and set channel 6 (assuming `wlan0` is your interface) use:
+
     ```bash
     sudo apt update
     sudo apt install aircrack-ng
@@ -120,21 +122,26 @@ To enable Monitor mode and set channel 6 (assuming `wlan0` is your interface) us
 After enabling Monitor mode, your interface will now show up as **wlan0mon**.
 
 Some WiFi cards may show support for Monitor mode but not function properly, for instance when capturing frames. 
+
 To check your wireless adapter driver use:
+
     ```bash
     lspci -k | grep -A 3 -i network
     ```
 or, for USB adapters:
+
     ```bash
     lsusb
     ```
 Additionally, check logs for failure messages if your adapter doesn't capture any traffic at all in Monitor mode.
+
     ```bash
     sudo dmesg | grep -i <driver_name>
     ```
 Do your own research on this adapter and any issues related to Monitor mode. Best case scenario, you need a driver update. Otherwise, you need an adapter that supports Monitor mode.
 
 To disable Monitor mode and re-enable the default Managed mode:
+
     ```bash
     sudo airmon-ng stop wlan0mon
     sudo systemctl start NetworkManager
@@ -160,19 +167,19 @@ To disable Monitor mode and re-enable the default Managed mode:
 Both Speaker and Listener scripts require root privileges to send or sniff beacons. You can run the scripts using `sudo`:
 
 **Speaker:**
-```
+   ```
    sudo python3 speaker.py
-```
+   ```
 
 **Listener:**
-```
+   ```
    sudo python3 listener.py
-```
+   ```
 
 ## 🚫 Limitations
-- Hardware Compatibility: Requires wireless adapters that support monitor mode and packet injection.
-- Range Constraints: Effective communication range is limited to Wi-Fi transmission distances.
-- Legal Compliance: Users must comply with local laws and regulations regarding wireless transmissions.
+- **Hardware Compatibility**: Requires wireless adapters that support monitor mode and packet injection.
+- **Range Constraints**: Effective communication range is limited to Wi-Fi transmission distances.
+- **Legal Compliance**: Users must comply with local laws and regulations regarding wireless transmissions.
 
 ## 🎯 Planned Upgrades
 
