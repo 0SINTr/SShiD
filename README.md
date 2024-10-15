@@ -79,7 +79,7 @@ Both components use a shared secret password for SSID generation and message enc
 
 6. **Packet Capturing:**
    - The **Listener** captures beacon frames in monitor mode.
-   - Filters frames matching the unique SSID.
+   - Captures only frames matching the unique SSID.
 
 7. **Message Extraction:**
    - The **Listener** extracts the encrypted message from the Vendor-Specific IE.
