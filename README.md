@@ -5,31 +5,31 @@
 [![Stable Release](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/0SINTr/SShiD/releases/tag/v0.1.0)
 [![Last Commit](https://img.shields.io/github/last-commit/0SINTr/SShiD)](https://github.com/0SINTr/SShiD/commits/main/)
 
-## **Table of Contents**
+## 📖 **Table of Contents**
 
 - [📡 SShiD: Covert Communication via SSID Beacons](#📡-sshid-covert-communication-via-ssid-beacons)
-  - [Introduction](#introduction)
-  - [Features](#features)
-  - [Advantages](#advantages)
-  - [Architecture](#architecture)
-  - [Communication Flow](#communication-flow)
-  - [System Requirements](#system-requirements)
-  - [Monitor Mode](#monitor-mode)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Limitations](#limitations)
-  - [Planned Upgrades](#planned-upgrades)
-  - [Disclaimer](#disclaimer)
-  - [License](#license)
-  - [Contact](#professional-collaborations)
+  - [🔍 Overview](#-overview)
+  - [🚀 Features](#-features)
+  - [💪 Advantages](#-advantages)
+  - [🛠️ Architecture](#-architecture)
+  - [🔄 Communication Flow](#-communication-flow)
+  - [🕵 System Requirements](#-system-requirements)
+  - [🖥️ Monitor Mode](#-monitor-mode)
+  - [⚒️ Installation](#-installation)
+  - [⛑️ Usage](#-usage)
+  - [🚫 Limitations](#-limitations)
+  - [🎯 Planned Upgrades](#-planned-upgrades)
+  - [⚠️ Disclaimer](#-disclaimer)
+  - [📜 License](#-license)
+  - [📧 Contact](#-professional-collaborations)
 
-## **Introduction**
+## 🔍 **Overview**
 
 **SShiD** is a proof-of-concept, Linux-based tool that utilizes principles of **network steganography** and enables covert communication by embedding encrypted messages within Wi-Fi beacon frames' Vendor-Specific Information Elements (IEs). This method allows for discreet data transmission without establishing a traditional network connection.
 
 🍀 **NOTE:** This is an ongoing **reasearch project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
 
-## **Features**
+## 🚀 **Features**
 
 - **Covert Communication:** Transmit messages without active network connections.
 - **Encryption:** Utilizes ChaCha20-Poly1305 encryption for secure message transmission.
@@ -37,7 +37,7 @@
 - **Vendor-Specific IEs:** Embeds messages within standard-compliant beacon frames.
 - **Channel Specification:** Operates on a user-defined Wi-Fi channel (default is 6).
 
-## **Advantages**
+## 💪 **Advantages**
 
 - **Stealthy Transmission:** By leveraging beacon frames, communication remains passive and less detectable.
 - **No Network Association Required:** Devices can exchange information without connecting to an access point.
@@ -45,7 +45,7 @@
 - **Standard Compliance:** Uses Wi-Fi standards, enhancing compatibility with various devices.
 - **Encryption Security:** Ensures messages remain confidential and tamper-proof.
 
-## **Architecture**
+## 🛠️ **Architecture**
 
 The project consists of two main components:
 
@@ -54,7 +54,7 @@ The project consists of two main components:
 
 Both components use a shared secret password for SSID generation and message encryption/decryption.
 
-## **Communication Flow**
+## 🔄 **Communication Flow**
 
 1. **Initialization:**
    - **Speaker and Listener** share a secret password before using SShiD.
@@ -90,7 +90,7 @@ Both components use a shared secret password for SSID generation and message enc
 
 🍀 **NOTE:** SShiD enables one-to-many communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
 
-## **System Requirements**
+## 🕵 **System Requirements**
 
 - **Operating System:** Linux-based systems (e.g., Ubuntu, Debian, Fedora)
   - Latest release tested and functional on **Ubuntu 24.04**
@@ -98,10 +98,10 @@ Both components use a shared secret password for SSID generation and message enc
 - **Dependencies:**
   - `scapy` for packet crafting and sniffing
   - `cryptography` for ECC encryption and checksum generation
-- **Privileges:** Root or sudo access to send and receive DHCP packets
+- **Privileges:** Root or sudo access to send or sniff WiFi beacons
 - **Network Interface:** Wireless interfaces in UP state and Monitor mode. **SShiD** will automatically detect and prompt you to select the active interface if multiple are detected.
 
-## **Monitor Mode**
+## 🖥️ **Monitor Mode**
 
 Monitor mode should be enabled on **both** the Speaker and Listener machines prior to using SShiD.
 To identify your wireless interface and check if it supports Monitor mode use:
@@ -140,7 +140,7 @@ To disable Monitor mode and re-enable the default Managed mode:
     sudo systemctl start NetworkManager
     ```
 
-## **Installation**
+## ⚒️ **Installation**
 
 1. **Clone the Repository:**
 
@@ -155,7 +155,7 @@ To disable Monitor mode and re-enable the default Managed mode:
    sudo apt install python3-cryptography
    ```
 
-## **Usage**
+## ⛑️ **Usage**
 
 Both Speaker and Listener scripts require root privileges to send or sniff beacons. You can run the scripts using `sudo`:
 
@@ -169,23 +169,23 @@ Both Speaker and Listener scripts require root privileges to send or sniff beaco
    sudo python3 listener.py
 ```
 
-## Limitations
+## 🚫 Limitations
 - Hardware Compatibility: Requires wireless adapters that support monitor mode and packet injection.
 - Range Constraints: Effective communication range is limited to Wi-Fi transmission distances.
 - Legal Compliance: Users must comply with local laws and regulations regarding wireless transmissions.
 
-## Planned Upgrades
+## 🎯 Planned Upgrades
 
 - [ ] More testing is needed
 - [ ] Improved CLI experience
 
-## Disclaimer
+## ️⚠️ Disclaimer
 **SShiD** is intended for educational and authorized security testing purposes only. Unauthorized interception or manipulation of network traffic is illegal and unethical. Users are responsible for ensuring that their use of this tool complies with all applicable laws and regulations. The developers of **SShiD** do not endorse or support any malicious or unauthorized activities. Use this tool responsibly and at your own risk.
 
-## License
+## 📜 License
 No license is provided for this software, therefore the work is under exclusive copyright by default. Read more about what this means [here](https://choosealicense.com/no-permission/).
 
-## Professional Collaborations
+## 📧 Professional Collaborations
 
 - **Email Address**:  
   Please direct your inquiries to **sintr.0@pm.me**.
