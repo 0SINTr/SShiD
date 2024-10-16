@@ -178,8 +178,8 @@ Both Speaker and Listener scripts require root privileges to send or sniff beaco
 
 ## 🎯 Planned Upgrades
 
-- [ ] More testing is needed
 - [ ] Improved CLI experience
+- [ ] More testing is needed
 
 ## ️⚠️ Disclaimer
 **SShiD** is intended for educational and authorized security testing purposes only. Unauthorized interception or manipulation of network traffic is illegal and unethical. Users are responsible for ensuring that their use of this tool complies with all applicable laws and regulations. The developers of **SShiD** do not endorse or support any malicious or unauthorized activities. Use this tool responsibly and at your own risk.
