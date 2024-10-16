@@ -117,22 +117,22 @@ def get_wireless_interface():
         lines = result.stdout.splitlines()
         interfaces = [line.strip().split(' ')[1] for line in lines if 'Interface' in line]
         if not interfaces:
-            logging.error('No wireless interfaces found.')
+            logging.error('[ERROR] No wireless interfaces found.')
             sys.exit(1)
         elif len(interfaces) == 1:
             return interfaces[0]
         else:
-            logging.info('Multiple wireless interfaces detected:')
+            logging.info('[INFO] Multiple wireless interfaces detected:')
             for idx, iface in enumerate(interfaces):
                 logging.info(f'{idx + 1}: {iface}')
-            choice = int(input('Select interface [1-{}]: '.format(len(interfaces))))
+            choice = int(input('[INPUT] Select interface [1-{}]: '.format(len(interfaces))))
             if 1 <= choice <= len(interfaces):
                 return interfaces[choice - 1]
             else:
-                logging.error('Invalid selection.')
+                logging.error('[ERROR] Invalid selection.')
                 sys.exit(1)
     except Exception as e:
-        logging.error(f'Error detecting wireless interface: {e}')
+        logging.error(f'[ERROR] Error detecting wireless interface: {e}')
         sys.exit(1)
 
 def process_packet(packet, target_ssid, key):
@@ -148,7 +148,7 @@ def process_packet(packet, target_ssid, key):
         # Extract the SSID
         ssid = packet[Dot11Elt].info.decode('utf-8', errors='ignore')
         if ssid == target_ssid:
-            logging.info(f'Detected target SSID: {ssid}')
+            logging.info(f'[INFO] Detected target SSID: {ssid}')
             # Look for Vendor-Specific IE
             vendor_ies = [ie for ie in packet[Dot11Elt] if ie.ID == 221]
             for ie in vendor_ies:
@@ -158,10 +158,10 @@ def process_packet(packet, target_ssid, key):
                     # Decode and decrypt the message
                     nonce, ciphertext = decode_data(encoded_data)
                     message = decrypt_message(nonce, ciphertext, key)
-                    logging.info(f'Received message: {message}')
-                    input('Press Enter to continue listening.')
+                    logging.info(f'[MESSAGE RECEIVED] Received message: {message}')
+                    input('[INPUT] Press Enter to continue listening.')
                 except Exception as e:
-                    logging.error(f'Error decrypting message: {e}')
+                    logging.error(f'[ERROR] Error decrypting message: {e}')
 
 def listener_main():
     """
@@ -175,10 +175,10 @@ def listener_main():
     - Processes incoming beacon frames and decrypts the message.
     """
     iface = get_wireless_interface()
-    password = getpass('Enter secret password: ')
+    password = getpass('[INPUT] Enter secret password: ')
     ssid = generate_ssid_identifier(password)
-    logging.info(f'Listening on interface: {iface}')
-    logging.info(f'SSID to search for: {ssid}')
+    logging.info(f'[INFO] Listening on interface: {iface}')
+    logging.info(f'[INFO] SSID to search for: {ssid}')
 
     # Derive decryption key
     encryption_salt = b'sshid_encryption_salt'
@@ -188,7 +188,7 @@ def listener_main():
     channel = 6
 
     # Start sniffing beacon frames
-    logging.info(f'Listening for beacon frames on channel {channel}.')
+    logging.info(f'[INFO] Listening for beacon frames on channel {channel}.')
     sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0)
 
 if __name__ == '__main__':

@@ -120,22 +120,22 @@ def get_wireless_interface():
         lines = result.stdout.splitlines()
         interfaces = [line.strip().split(' ')[1] for line in lines if 'Interface' in line]
         if not interfaces:
-            logging.error('No wireless interfaces found.')
+            logging.error('[ERROR] No wireless interfaces found.')
             sys.exit(1)
         elif len(interfaces) == 1:
             return interfaces[0]
         else:
-            logging.info('Multiple wireless interfaces detected:')
+            logging.info('[INFO] Multiple wireless interfaces detected:')
             for idx, iface in enumerate(interfaces):
                 logging.info(f'{idx + 1}: {iface}')
-            choice = int(input('Select interface [1-{}]: '.format(len(interfaces))))
+            choice = int(input('[INPUT] Select interface [1-{}]: '.format(len(interfaces))))
             if 1 <= choice <= len(interfaces):
                 return interfaces[choice - 1]
             else:
-                logging.error('Invalid selection.')
+                logging.error('[ERROR] Invalid selection.')
                 sys.exit(1)
     except Exception as e:
-        logging.error(f'Error detecting wireless interface: {e}')
+        logging.error(f'[ERROR] Error detecting wireless interface: {e}')
         sys.exit(1)
 
 def generate_random_mac():
@@ -219,25 +219,25 @@ def speaker_main():
     - Starts broadcasting beacon frames with the SSID and encrypted message.
     """
     iface = get_wireless_interface()
-    password = getpass('Enter secret password: ')
+    password = getpass('[INPUT] Enter secret password: ')
     ssid = generate_ssid_identifier(password)
-    logging.info(f'Broadcasting on interface: {iface}')
-    logging.info(f'SSID to broadcast: {ssid}')
+    logging.info(f'[INFO] Broadcasting on interface: {iface}')
+    logging.info(f'[INFO] SSID to broadcast: {ssid}')
 
     # Derive encryption key
     encryption_salt = b'sshid_encryption_salt'
     key = derive_key(password, encryption_salt)
 
-    message = input('Enter message to broadcast (max 100 characters): ')
+    message = input('[INPUT] Enter message to broadcast (max 100 characters): ')
     if len(message) > 100:
-        logging.warning('Message too long, truncating to 100 characters.')
+        logging.warning('[WARNING] Message too long, truncating to 100 characters.')
         message = message[:100]
 
     # Encrypt the message
     nonce, ciphertext = encrypt_message(message, key)
     # Encode the encrypted data
     encoded_data = encode_data(nonce, ciphertext)
-    logging.info(f'Encoded encrypted message length: {len(encoded_data)} characters')
+    logging.info(f'[INFO] Encoded encrypted message length: {len(encoded_data)} characters')
 
     # Specify the channel (e.g., 6)
     channel = 6
@@ -245,12 +245,12 @@ def speaker_main():
     # Start broadcasting beacon frames
     threading.Thread(target=broadcast_beacon, args=(iface, ssid, encoded_data, channel), daemon=True).start()
 
-    logging.info('Broadcasting beacon frames. Press Ctrl+C to stop.')
+    logging.info('[INFO] Broadcasting beacon frames. Press Ctrl+C to stop.')
     try:
         while True:
             pass
     except KeyboardInterrupt:
-        logging.info('Stopping beacon broadcast.')
+        logging.info('[INFO] Stopping beacon broadcast.')
         sys.exit(0)
 
 if __name__ == '__main__':
