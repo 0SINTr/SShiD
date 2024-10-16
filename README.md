@@ -27,7 +27,7 @@
 
 **SShiD** is a proof-of-concept, Linux-based tool that utilizes principles of **network steganography** and enables covert communication by embedding encrypted messages within Wi-Fi beacon frames' **Vendor-Specific Information Elements (IEs)**. This method allows for discreet data transmission without establishing a traditional network connection.
 
-🍀 **NOTE:** This is an ongoing **reasearch project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
+🍀 **NOTE:** This is an ongoing **research project** for educational purposes rather than a full-fledged production-ready tool, so treat it accordingly.
 
 ## 🚀 **Features**
 
@@ -44,6 +44,9 @@
 - **No Single Point of Failure:** Communication cannot be filtered by a firewall or IDS system.
 - **Standard Compliance:** Uses Wi-Fi standards, enhancing compatibility with various devices.
 - **Encryption Security:** Ensures messages remain confidential and tamper-proof.
+
+- **Reliability of using beacon frames for the communication flow.**
+  - For the sake of blending our covert traffic into the overall traffic, keep in mind that **communication via SShiD will not always be 100% reliable**. Since we're using broadcast messages over Wi-Fi, there's always a chance that packets can be lost due to network congestion, wireless interference, or other factors. Message retries are planned for **future versions**.
 
 ## 🛠️ **Architecture**
 
@@ -177,8 +180,7 @@ Both Speaker and Listener scripts require root privileges to send or sniff beaco
 - **Legal Compliance**: Users must comply with local laws and regulations regarding wireless transmissions.
 
 ## 🎯 Planned Upgrades
-
-- [ ] Improved CLI experience
+- [X] Improved CLI experience
 - [ ] More testing is needed
 
 ## ️⚠️ Disclaimer
