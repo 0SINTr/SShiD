@@ -60,7 +60,7 @@ Both components use a shared secret password for SSID generation and message enc
 ## 🔄 **Communication Flow**
 
 1. **Initialization:**
-   - **Speaker and Listener** share a secret password before using SShiD.
+   - **Speaker and Listener** share a secret password before using **SShiD**.
    - Both set their wireless interfaces to monitor mode on the same channel.
 
 2. **SSID Generation:**
@@ -91,7 +91,7 @@ Both components use a shared secret password for SSID generation and message enc
 8. **Output:**
    - The decrypted message is displayed to the user.
 
-🍀 **NOTE:** SShiD enables **one-to-many** communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
+🍀 **NOTE:** **SShiD** enables **one-to-many** communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
 
 ## 🕵 **System Requirements**
 
@@ -106,21 +106,23 @@ Both components use a shared secret password for SSID generation and message enc
 
 ## 🖥️ **Monitor Mode**
 
-Monitor mode should be enabled on **both** the Speaker and Listener machines prior to using SShiD.
+Monitor mode should be enabled on **both** the Speaker and Listener machines prior to using **SShiD**.
 To identify your wireless interface and check if it supports Monitor mode use:
 ```bash
 iw dev
 sudo iw list | grep -A 10 "Supported interface modes"
 ```
 
-To **enable Monitor mode** and set channel 6 (assuming `wlan0` is your interface) use:
+To **enable Monitor mode** (assuming `wlan0` is your interface) use:
 ```bash
 sudo apt update
 sudo apt install aircrack-ng
 sudo airmon-ng check kill
-sudo airmon-ng start wlan0 6
+sudo ip link set wlan0 down
+sudo iw dev wlan0 set type monitor
+sudo ip link set wlan0 down
 ```
-After enabling Monitor mode, your interface will now show up as **wlan0mon**.
+After enabling Monitor mode, check with `iwconfig` to see if your interface shows **Mode: Monitor**.
 
 Some WiFi cards may show support for Monitor mode but not function properly, for instance when capturing frames. 
 
@@ -138,11 +140,12 @@ Additionally, **check logs** for failure messages if your adapter doesn't captur
 sudo dmesg | grep -i <driver_name>
 ```
 
-🍀 **NOTE:** Do your own research on this adapter and any issues related to Monitor mode. Best case scenario, you need a driver update. Otherwise, you need an adapter that supports Monitor mode.
+🍀 **NOTE:** Do your own research on your adapter and any issues related to Monitor mode. Best case scenario, you need a driver update. Otherwise, you need an adapter that supports Monitor mode. The cheapest option may be **TP-Link TL-WN722N**. Here's a tutorial on how to set it up to allow Monitor mode:
+- [YouTube Tutorial](https://www.youtube.com/watch?v=LzfQAtndtLI)
 
 To **disable Monitor mode** and re-enable the default **Managed mode**:
 ```bash
-sudo airmon-ng stop wlan0mon
+sudo iw dev wlan0 set type managed
 sudo systemctl start NetworkManager
 ```
 
