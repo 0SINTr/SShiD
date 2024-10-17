@@ -35,7 +35,7 @@
 - **Encryption:** Utilizes ChaCha20-Poly1305 encryption for secure message transmission.
 - **Custom SSID Generation:** Creates unique SSIDs based on a shared secret password.
 - **Vendor-Specific IEs:** Embeds messages within standard-compliant beacon frames.
-- **Channel Specification:** Operates on a user-defined Wi-Fi channel (default is 6).
+- **Channel Specification:** Operates on a user-defined Wi-Fi channel (default is 1).
 
 ## 💪 **Advantages**
 
