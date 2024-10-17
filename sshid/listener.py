@@ -170,7 +170,7 @@ def process_packet(packet, target_ssid, key):
                             encoded_data = encoded_data_bytes.decode('utf-8', errors='ignore')
                             nonce, ciphertext = decode_data(encoded_data)
                             message = decrypt_message(nonce, ciphertext, key)
-                            print(f'\n<Message from Speaker> {message}\n')
+                            print(f'\n<MESSAGE FROM SPEAKER> {message}\n')
                             message_received = True
                             return  # Stop sniffing
                         except Exception as e:
@@ -208,13 +208,15 @@ def listener_main():
     logging.info('Listening for beacon frames from Speaker.')
     sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0,
           stop_filter=lambda x: message_received or decryption_failed)
-    logging.info('Stopped listening.')
 
     if message_received:
         logging.info('Message received successfully.')
     elif decryption_failed:
         logging.info('Exiting Listener due to decryption failure.')
         sys.exit(1)
+
+    # Stopping and exiting
+    logging.info('Stopped listening.')
 
 if __name__ == '__main__':
     listener_main()
