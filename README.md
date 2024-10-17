@@ -7,19 +7,19 @@
 
 ## 📖 **Table of Contents**
 
-- [📡 SShiD: Covert Communication via SSID Beacons](#📡-sshid-covert-communication-via-ssid-beacons)
+- [📡 SShiD: Covert Communication via SSID Beacons](#-sshid---covert-communication-via-ssid-beacons-)
   - [🔍 Overview](#-overview)
   - [🚀 Features](#-features)
   - [💪 Advantages](#-advantages)
-  - [🛠️ Architecture](#-architecture)
+  - [🛠️ Architecture](#%EF%B8%8F-architecture)
   - [🔄 Communication Flow](#-communication-flow)
   - [🕵 System Requirements](#-system-requirements)
-  - [🖥️ Monitor Mode](#-monitor-mode)
-  - [⚒️ Installation](#-installation)
-  - [⛑️ Usage](#-usage)
+  - [🖥️ Monitor Mode](#%EF%B8%8F-monitor-mode)
+  - [⚒️ Installation](#%EF%B8%8F-installation)
+  - [⛑️ Usage](#%EF%B8%8F-usage)
   - [🚫 Limitations](#-limitations)
   - [🎯 Planned Upgrades](#-planned-upgrades)
-  - [⚠️ Disclaimer](#-disclaimer)
+  - [⚠️ Disclaimer](#%EF%B8%8F%EF%B8%8F-disclaimer)
   - [📜 License](#-license)
   - [📧 Contact](#-professional-collaborations)
 
