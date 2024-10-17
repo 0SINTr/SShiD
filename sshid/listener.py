@@ -17,9 +17,7 @@ sudo python3 listener.py
 """
 
 import sys
-import time
 import base64
-import random
 import hashlib
 import logging
 import subprocess
@@ -27,8 +25,7 @@ from getpass import getpass
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from scapy.all import sniff, Dot11Beacon, Dot11Elt, RadioTap, Dot11, sendp
-
+from scapy.all import sniff, Dot11Beacon, Dot11Elt
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 #logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
@@ -144,29 +141,6 @@ def get_wireless_interface():
         logging.error(f'Error detecting wireless interface: {e}')
         sys.exit(1)
 
-def generate_random_mac():
-    mac = [0x00, 0x16, 0x3e,
-           random.randint(0x00, 0x7f),
-           random.randint(0x00, 0xff),
-           random.randint(0x00, 0xff)]
-    return ':'.join(map(lambda x: "%02x" % x, mac))
-
-def send_confirmation(iface, confirmation_ssid):
-    # Generate a random MAC address
-    source_mac = generate_random_mac()
-    # Construct the beacon frame
-    dot11 = Dot11(type=0, subtype=8, addr1='ff:ff:ff:ff:ff:ff',
-                  addr2=source_mac, addr3=source_mac)
-    beacon = Dot11Beacon(cap='ESS')
-    essid = Dot11Elt(ID='SSID', info=confirmation_ssid.encode('utf-8'))
-    frame = RadioTap()/dot11/beacon/essid
-    # Send the frame multiple times to ensure it's received
-    logging.info('Sending confirmation to Speaker...')
-    for _ in range(10):
-        sendp(frame, iface=iface, verbose=0)
-        time.sleep(0.1)
-    logging.info('Confirmation sent to Speaker.')
-
 def process_packet(packet, target_ssid, key):
     """
     Processes captured packets, looking for the target SSID and decrypting the message.
@@ -196,14 +170,14 @@ def process_packet(packet, target_ssid, key):
                             encoded_data = encoded_data_bytes.decode('utf-8', errors='ignore')
                             nonce, ciphertext = decode_data(encoded_data)
                             message = decrypt_message(nonce, ciphertext, key)
-                            logging.info(f'\n<Speaker> Received message: {message}\n')
+                            print(f'\n<Message from Speaker> {message}\n')
                             message_received = True
-                            return True  # Stop sniffing
+                            return  # Stop sniffing
                         except Exception as e:
                             if not decryption_failed:
                                 logging.error('Decryption error. Make sure you and the Speaker are using the same secret password.')
                                 decryption_failed = True
-                            return True  # Stop sniffing
+                            return  # Stop sniffing
             dot11elt = dot11elt.payload.getlayer(Dot11Elt)
         if ssid == target_ssid and not ssid_detected:
             logging.info(f'Detected target SSID: {ssid}')
@@ -231,19 +205,15 @@ def listener_main():
     key = derive_key(password, encryption_salt)
 
     # Start sniffing beacon frames
-    logging.info(f'Listening for beacon frames from Speaker.')
+    logging.info('Listening for beacon frames from Speaker.')
     sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0,
-          stop_filter=lambda x: message_received)
+          stop_filter=lambda x: message_received or decryption_failed)
     logging.info('Stopped listening.')
 
     if message_received:
-        input('[INPUT] Press Enter to confirm you have read the message.')
-        # Send confirmation back to Speaker
-        confirmation_ssid = ssid + '_ACK'
-        send_confirmation(iface, confirmation_ssid)
-        logging.info('Closing the Listener. Bye!')
+        logging.info('Message received successfully.')
     elif decryption_failed:
-        logging.info('Closing the Listener due to decryption failure.')
+        logging.info('Exiting Listener due to decryption failure.')
         sys.exit(1)
 
 if __name__ == '__main__':
