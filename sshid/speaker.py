@@ -18,6 +18,7 @@ sudo python3 speaker.py
 
 import os
 import sys
+import time
 import base64
 import random
 import struct
@@ -28,12 +29,16 @@ from getpass import getpass
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, sendp
-from scapy.layers.dot11 import Dot11EltVendorSpecific
+from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, sendp, sniff
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 #logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
+
+stop_transmission = threading.Event()
+confirmation_received = threading.Event()
+vendor_oui = 0xACDE48
+vendor_oui_bytes = vendor_oui.to_bytes(3, byteorder='big')
 
 def derive_key(password, salt, iterations=100000):
     """
@@ -159,25 +164,19 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=1):
     vendor_oui = 0xACDE48
     vendor_oui_bytes = vendor_oui.to_bytes(3, byteorder='big')
     vendor_oui_type = b'\x00'  # Optional OUI type
-
     # Ensure encoded_data is bytes
     if isinstance(encoded_data, str):
         encoded_data_bytes = encoded_data.encode('utf-8')
     else:
         encoded_data_bytes = encoded_data
-
     # Build the Vendor-Specific IE info field
     vendor_ie_info = vendor_oui_bytes + vendor_oui_type + encoded_data_bytes
-    
     # Create the Vendor-Specific IE
     vendor_ie = Dot11Elt(ID=221, info=vendor_ie_info)
-
     # Build the DS Parameter Set IE to specify the channel
     dsset = Dot11Elt(ID='DSset', info=chr(channel).encode('utf-8'))
-
     # Generate a random globally unique MAC address
     source_mac = generate_random_mac()
-
     # Construct the beacon frame
     dot11 = Dot11(type=0, subtype=8, addr1='ff:ff:ff:ff:ff:ff',
                   addr2=source_mac, addr3=source_mac)
@@ -210,8 +209,28 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=1):
     # Build the complete frame
     frame = RadioTap()/dot11/beacon/essid/rsn/dsset/vendor_ie
 
-    # Send the frame in a loop
-    sendp(frame, iface=iface, inter=0.1, loop=1, verbose=0)
+    # Send the frame in a loop until stop_transmission is set
+    logging.info('Starting beacon transmission.')
+    while not stop_transmission.is_set():
+        sendp(frame, iface=iface, verbose=0)
+        time.sleep(0.1)
+    logging.info('Stopped beacon transmission.')
+
+def listen_for_confirmation(iface, confirmation_ssid):
+    def process_packet(packet):
+        if packet.haslayer(Dot11Beacon):
+            ssid = None
+            dot11elt = packet.getlayer(Dot11Elt)
+            while isinstance(dot11elt, Dot11Elt):
+                if dot11elt.ID == 0:  # SSID
+                    ssid = dot11elt.info.decode('utf-8', errors='ignore')
+                    if ssid == confirmation_ssid:
+                        logging.info('Listener has read the message.')
+                        confirmation_received.set()
+                        stop_transmission.set()
+                        return True  # Stop sniffing
+                dot11elt = dot11elt.payload.getlayer(Dot11Elt)
+    sniff(iface=iface, prn=process_packet, stop_filter=lambda x: confirmation_received.is_set(), store=0)
 
 def speaker_main():
     """
@@ -223,10 +242,11 @@ def speaker_main():
     - Encrypts the message.
     - Starts broadcasting beacon frames with the SSID and encrypted message.
     """
+    global stop_transmission
     iface = get_wireless_interface()
     password = getpass('[INPUT] Enter secret password: ')
     ssid = generate_ssid_identifier(password)
-    logging.info(f'Broadcasting on interface: {iface}')
+    logging.info(f'Using interface: {iface}')
     logging.info(f'SSID to broadcast: {ssid}')
 
     # Derive encryption key
@@ -247,15 +267,30 @@ def speaker_main():
     # Specify the channel (e.g., 1)
     channel = 1
 
-    # Start broadcasting beacon frames
-    threading.Thread(target=broadcast_beacon, args=(iface, ssid, encoded_data, channel), daemon=True).start()
+    # Ensure the interface is configured correctly (monitor mode, correct channel)
+    # You can include a function to automate this if needed
 
-    logging.info(f'Broadcasting beacon frames on channel {channel}. Press Ctrl+C to stop.')
+    # Generate confirmation SSID
+    confirmation_ssid = ssid + '_ACK'
+
+    # Start broadcasting beacon frames in a separate thread
+    beacon_thread = threading.Thread(target=broadcast_beacon, args=(iface, ssid, encoded_data, channel))
+    beacon_thread.start()
+
+    # Start listening for confirmation in a separate thread
+    confirmation_thread = threading.Thread(target=listen_for_confirmation, args=(iface, confirmation_ssid))
+    confirmation_thread.start()
+
+    logging.info(f'Broadcasting beacon frames on channel {channel}. Waiting for Listener confirmation.')
     try:
-        while True:
-            pass
+        while not confirmation_received.is_set():
+            time.sleep(0.1)
+        logging.info('To send a new message, run SShiD once again.')
+        # Exiting the program
+        sys.exit(0)
     except KeyboardInterrupt:
         logging.info('Stopping beacon broadcast.')
+        stop_transmission.set()
         sys.exit(0)
 
 if __name__ == '__main__':

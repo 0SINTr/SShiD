@@ -17,15 +17,18 @@ sudo python3 listener.py
 """
 
 import sys
+import time
 import base64
+import random
 import hashlib
+import logging
 import subprocess
 from getpass import getpass
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from scapy.all import sniff, Dot11Beacon, Dot11Elt
-import logging
+from scapy.all import sniff, Dot11Beacon, Dot11Elt, RadioTap, Dot11, sendp
+
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 #logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
@@ -140,6 +143,29 @@ def get_wireless_interface():
         logging.error(f'Error detecting wireless interface: {e}')
         sys.exit(1)
 
+def generate_random_mac():
+    mac = [0x00, 0x16, 0x3e,
+           random.randint(0x00, 0x7f),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff)]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
+def send_confirmation(iface, confirmation_ssid):
+    # Generate a random MAC address
+    source_mac = generate_random_mac()
+    # Construct the beacon frame
+    dot11 = Dot11(type=0, subtype=8, addr1='ff:ff:ff:ff:ff:ff',
+                  addr2=source_mac, addr3=source_mac)
+    beacon = Dot11Beacon(cap='ESS')
+    essid = Dot11Elt(ID='SSID', info=confirmation_ssid.encode('utf-8'))
+    frame = RadioTap()/dot11/beacon/essid
+    # Send the frame multiple times to ensure it's received
+    logging.info('Sending confirmation to Speaker...')
+    for _ in range(10):
+        sendp(frame, iface=iface, verbose=0)
+        time.sleep(0.1)
+    logging.info('Confirmation sent to Speaker.')
+
 def process_packet(packet, target_ssid, key):
     """
     Processes captured packets, looking for the target SSID and decrypting the message.
@@ -187,6 +213,7 @@ def listener_main():
     - Starts sniffing for beacon frames with the matching SSID.
     - Processes incoming beacon frames and decrypts the message.
     """
+    global message_received
     iface = get_wireless_interface()
     password = getpass('[INPUT] Enter secret password: ')
     ssid = generate_ssid_identifier(password)
@@ -202,6 +229,13 @@ def listener_main():
     sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0,
           stop_filter=lambda x: message_received)
     logging.info('Stopped listening.')
+
+    if message_received:
+        input('[INPUT] Press Enter to confirm you have read the message.')
+        # Send confirmation back to Speaker
+        confirmation_ssid = ssid + '_ACK'
+        send_confirmation(iface, confirmation_ssid)
+        logging.info('You can now close the Listener.')
 
 if __name__ == '__main__':
     listener_main()
