@@ -35,6 +35,7 @@ logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 ssid_detected = False
 message_received = False
+decryption_failed = False
 vendor_oui = 0xACDE48
 vendor_oui_bytes = vendor_oui.to_bytes(3, byteorder='big')
 
@@ -175,7 +176,9 @@ def process_packet(packet, target_ssid, key):
         target_ssid (str): The SSID to match against.
         key (bytes): The decryption key derived from the password.
     """
-    global ssid_detected, message_received
+    global ssid_detected, message_received, decryption_failed
+    if decryption_failed or message_received:
+        return  # Stop processing further packets
     if packet.haslayer(Dot11Beacon):
         ssid = None
         dot11elt = packet.getlayer(Dot11Elt)
@@ -193,11 +196,14 @@ def process_packet(packet, target_ssid, key):
                             encoded_data = encoded_data_bytes.decode('utf-8', errors='ignore')
                             nonce, ciphertext = decode_data(encoded_data)
                             message = decrypt_message(nonce, ciphertext, key)
-                            logging.info(f'Received message: {message}')
+                            logging.info(f'\n<Speaker> Received message: {message}\n')
                             message_received = True
                             return True  # Stop sniffing
                         except Exception as e:
-                            logging.error(f'Error decrypting message: {e}')
+                            if not decryption_failed:
+                                logging.error('Decryption error. Make sure you and the Speaker are using the same secret password.')
+                                decryption_failed = True
+                            return True  # Stop sniffing
             dot11elt = dot11elt.payload.getlayer(Dot11Elt)
         if ssid == target_ssid and not ssid_detected:
             logging.info(f'Detected target SSID: {ssid}')
@@ -213,7 +219,7 @@ def listener_main():
     - Starts sniffing for beacon frames with the matching SSID.
     - Processes incoming beacon frames and decrypts the message.
     """
-    global message_received
+    global message_received, decryption_failed
     iface = get_wireless_interface()
     password = getpass('[INPUT] Enter secret password: ')
     ssid = generate_ssid_identifier(password)
@@ -235,7 +241,10 @@ def listener_main():
         # Send confirmation back to Speaker
         confirmation_ssid = ssid + '_ACK'
         send_confirmation(iface, confirmation_ssid)
-        logging.info('You can now close the Listener.')
+        logging.info('Closing the Listener. Bye!')
+    elif decryption_failed:
+        logging.info('Closing the Listener due to decryption failure.')
+        sys.exit(1)
 
 if __name__ == '__main__':
     listener_main()

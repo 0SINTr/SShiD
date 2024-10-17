@@ -208,29 +208,34 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=1):
 
     # Build the complete frame
     frame = RadioTap()/dot11/beacon/essid/rsn/dsset/vendor_ie
-
-    # Send the frame in a loop until stop_transmission is set
     logging.info('Starting beacon transmission.')
     while not stop_transmission.is_set():
-        sendp(frame, iface=iface, verbose=0)
-        time.sleep(0.1)
+        # Send beacon frames for a duration
+        sendp(frame, iface=iface, count=10, inter=0.1, verbose=0)
+        if stop_transmission.is_set():
+            break
+        # Pause to allow for reception
+        logging.debug('Pausing beacon transmission to allow for reception.')
+        time.sleep(1)
     logging.info('Stopped beacon transmission.')
 
 def listen_for_confirmation(iface, confirmation_ssid):
     def process_packet(packet):
         if packet.haslayer(Dot11Beacon):
-            ssid = None
             dot11elt = packet.getlayer(Dot11Elt)
             while isinstance(dot11elt, Dot11Elt):
                 if dot11elt.ID == 0:  # SSID
                     ssid = dot11elt.info.decode('utf-8', errors='ignore')
+                    logging.debug(f'Received beacon with SSID: {ssid}')
                     if ssid == confirmation_ssid:
                         logging.info('Listener has read the message.')
                         confirmation_received.set()
                         stop_transmission.set()
                         return True  # Stop sniffing
                 dot11elt = dot11elt.payload.getlayer(Dot11Elt)
-    sniff(iface=iface, prn=process_packet, stop_filter=lambda x: confirmation_received.is_set(), store=0)
+    sniff(iface=iface, prn=process_packet,
+          stop_filter=lambda x: confirmation_received.is_set(), store=0)
+    logging.info('Stopped listening for confirmation.')
 
 def speaker_main():
     """
@@ -281,7 +286,8 @@ def speaker_main():
     confirmation_thread = threading.Thread(target=listen_for_confirmation, args=(iface, confirmation_ssid))
     confirmation_thread.start()
 
-    logging.info(f'Broadcasting beacon frames on channel {channel}. Waiting for Listener confirmation.')
+    logging.info(f'Broadcasting message in beacon frames on channel {channel}.')
+    logging.info('Waiting for Listener confirmation.')
     try:
         while not confirmation_received.is_set():
             time.sleep(0.1)
