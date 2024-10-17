@@ -145,7 +145,7 @@ def generate_random_mac():
            random.randint(0x00, 0xff)]
     return ':'.join(map(lambda x: "%02x" % x, mac))
 
-def broadcast_beacon(iface, ssid, encoded_data, channel=6):
+def broadcast_beacon(iface, ssid, encoded_data, channel=1):
     """
     Constructs and sends beacon frames with the given SSID, Vendor-Specific IE, and channel.
 
@@ -153,7 +153,7 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=6):
         iface (str): The wireless interface to use.
         ssid (str): The SSID to broadcast.
         encoded_data (str): The Base64 encoded encrypted message to include in the Vendor-Specific IE.
-        channel (int): The Wi-Fi channel to broadcast on (default: 6).
+        channel (int): The Wi-Fi channel to broadcast on (default: 1).
     """
     # Use a locally administered OUI (e.g., 0xACDE48)
     vendor_oui = 0xACDE48
@@ -239,13 +239,13 @@ def speaker_main():
     encoded_data = encode_data(nonce, ciphertext)
     logging.info(f'[INFO] Encoded encrypted message length: {len(encoded_data)} characters')
 
-    # Specify the channel (e.g., 6)
-    channel = 6
+    # Specify the channel (e.g., 1)
+    channel = 1
 
     # Start broadcasting beacon frames
     threading.Thread(target=broadcast_beacon, args=(iface, ssid, encoded_data, channel), daemon=True).start()
 
-    logging.info('[INFO] Broadcasting beacon frames. Press Ctrl+C to stop.')
+    logging.info(f'[INFO] Broadcasting beacon frames on channel {channel}. Press Ctrl+C to stop.')
     try:
         while True:
             pass

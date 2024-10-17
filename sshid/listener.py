@@ -170,7 +170,6 @@ def listener_main():
     - Obtains the wireless interface.
     - Prompts the user for the secret password.
     - Generates the SSID and decryption key.
-    - Sets the interface to monitor mode on the specified channel.
     - Starts sniffing for beacon frames with the matching SSID.
     - Processes incoming beacon frames and decrypts the message.
     """
@@ -184,11 +183,8 @@ def listener_main():
     encryption_salt = b'sshid_encryption_salt'
     key = derive_key(password, encryption_salt)
 
-    # Specify the channel (e.g., 6)
-    channel = 6
-
     # Start sniffing beacon frames
-    logging.info(f'[INFO] Listening for beacon frames on channel {channel}.')
+    logging.info(f'[INFO] Listening for beacon frames from Speaker.')
     sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0)
 
 if __name__ == '__main__':
