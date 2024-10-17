@@ -98,7 +98,7 @@ Make sure that the **Listener** is running and listening *prior* to executing th
 
 ## 🕵 **System Requirements**
 
-- **Operating System:** Linux-based systems (e.g., Ubuntu, Debian, Fedora)
+- **Operating System:** Linux-based systems (e.g., Ubuntu, Debian, Kali)
   - Latest release tested and functional on **Ubuntu 24.04**
 - **Python Version:** Python 3.8 or higher
 - **Dependencies:**
