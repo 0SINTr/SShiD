@@ -59,9 +59,11 @@ Both components use a shared secret password for SSID generation and message enc
 
 ## 🔄 **Communication Flow**
 
+Make sure that the **Listener** is running and listening *prior* to executing the **Speaker** script.
+
 1. **Initialization:**
    - **Speaker and Listener** share a secret password before using **SShiD**.
-   - Both set their wireless interfaces to monitor mode on the same channel.
+   - Both set their wireless interfaces to monitor mode (see commands below).
 
 2. **SSID Generation:**
    - The **Speaker** generates a unique SSID by hashing the password.
@@ -78,7 +80,7 @@ Both components use a shared secret password for SSID generation and message enc
      - Standard IEs like RSN information for compliance.
 
 5. **Broadcasting:**
-   - The **Speaker** broadcasts the beacon frames periodically.
+   - The **Speaker** broadcasts a set of 50 beacon frames.
 
 6. **Packet Capturing:**
    - The **Listener** captures beacon frames in monitor mode.
@@ -90,6 +92,7 @@ Both components use a shared secret password for SSID generation and message enc
 
 8. **Output:**
    - The decrypted message is displayed to the user.
+   - Broadcasting and listening are turned off.
 
 🍀 **NOTE:** **SShiD** enables **one-to-many** communication between the **Speaker** and any **Listener** who knows the password. Therefore, the message exchange is **not** bidirectional.
 
