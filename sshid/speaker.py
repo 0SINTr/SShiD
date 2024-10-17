@@ -157,6 +157,8 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=1):
     """
     # Use a locally administered OUI (e.g., 0xACDE48)
     vendor_oui = 0xACDE48
+    vendor_oui_bytes = vendor_oui.to_bytes(3, byteorder='big')
+    vendor_oui_type = b'\x00'  # Optional OUI type
 
     # Ensure encoded_data is bytes
     if isinstance(encoded_data, str):
@@ -164,8 +166,11 @@ def broadcast_beacon(iface, ssid, encoded_data, channel=1):
     else:
         encoded_data_bytes = encoded_data
 
-    # Build the Vendor-Specific IE
-    vendor_ie = Dot11EltVendorSpecific(oui=vendor_oui, info=encoded_data_bytes)
+    # Build the Vendor-Specific IE info field
+    vendor_ie_info = vendor_oui_bytes + vendor_oui_type + encoded_data_bytes
+    
+    # Create the Vendor-Specific IE
+    vendor_ie = Dot11Elt(ID=221, info=vendor_ie_info)
 
     # Build the DS Parameter Set IE to specify the channel
     dsset = Dot11Elt(ID='DSset', info=chr(channel).encode('utf-8'))

@@ -28,7 +28,12 @@ from scapy.all import sniff, Dot11Beacon, Dot11Elt
 import logging
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
+#logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s')
+
+ssid_detected = False
+message_received = False
+vendor_oui = 0xACDE48
+vendor_oui_bytes = vendor_oui.to_bytes(3, byteorder='big')
 
 def derive_key(password, salt, iterations=100000):
     """
@@ -144,24 +149,33 @@ def process_packet(packet, target_ssid, key):
         target_ssid (str): The SSID to match against.
         key (bytes): The decryption key derived from the password.
     """
+    global ssid_detected, message_received
     if packet.haslayer(Dot11Beacon):
-        # Extract the SSID
-        ssid = packet[Dot11Elt].info.decode('utf-8', errors='ignore')
-        if ssid == target_ssid:
+        ssid = None
+        dot11elt = packet.getlayer(Dot11Elt)
+        while isinstance(dot11elt, Dot11Elt):
+            if dot11elt.ID == 0:  # SSID
+                ssid = dot11elt.info.decode('utf-8', errors='ignore')
+            elif dot11elt.ID == 221:  # Vendor-Specific IE
+                info = dot11elt.info
+                if len(info) >= 4:
+                    ie_oui = info[:3]
+                    ie_oui_type = info[3]
+                    if ie_oui == vendor_oui_bytes:
+                        encoded_data_bytes = info[4:]
+                        try:
+                            encoded_data = encoded_data_bytes.decode('utf-8', errors='ignore')
+                            nonce, ciphertext = decode_data(encoded_data)
+                            message = decrypt_message(nonce, ciphertext, key)
+                            logging.info(f'Received message: {message}')
+                            message_received = True
+                            return True  # Stop sniffing
+                        except Exception as e:
+                            logging.error(f'Error decrypting message: {e}')
+            dot11elt = dot11elt.payload.getlayer(Dot11Elt)
+        if ssid == target_ssid and not ssid_detected:
             logging.info(f'Detected target SSID: {ssid}')
-            # Look for Vendor-Specific IE
-            vendor_ies = [ie for ie in packet[Dot11Elt] if ie.ID == 221]
-            for ie in vendor_ies:
-                try:
-                    # Extract the encrypted data
-                    encoded_data = ie.info.decode('utf-8', errors='ignore')
-                    # Decode and decrypt the message
-                    nonce, ciphertext = decode_data(encoded_data)
-                    message = decrypt_message(nonce, ciphertext, key)
-                    logging.info(f'Received message: {message}')
-                    input('[INPUT] Press Enter to continue listening.')
-                except Exception as e:
-                    logging.error(f'Error decrypting message: {e}')
+            ssid_detected = True
 
 def listener_main():
     """
@@ -185,7 +199,9 @@ def listener_main():
 
     # Start sniffing beacon frames
     logging.info(f'Listening for beacon frames from Speaker.')
-    sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0)
+    sniff(prn=lambda pkt: process_packet(pkt, ssid, key), iface=iface, store=0,
+          stop_filter=lambda x: message_received)
+    logging.info('Stopped listening.')
 
 if __name__ == '__main__':
     listener_main()
